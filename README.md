@@ -165,3 +165,4 @@ The project uses the **Visitor pattern** with two axes of extension:
 - **CompanyWebsite** — First-party career pages (e.g. apple.com/careers)
 - **ATSPlatform** — Hosted ATS portals (Workday, Oracle Cloud, Greenhouse)
 # Negotium
+# Negotium
