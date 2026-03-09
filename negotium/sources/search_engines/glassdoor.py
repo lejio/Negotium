@@ -17,20 +17,20 @@ BASE_URL = "https://www.glassdoor.com/Job/jobs.htm"
 
 # Glassdoor fromAge param (days)
 _GD_DATE_MAP: dict[PostedWithin, str] = {
-    PostedWithin.PAST_HOUR:  "1",
-    PostedWithin.PAST_24H:   "1",
-    PostedWithin.PAST_WEEK:  "7",
+    PostedWithin.PAST_HOUR: "1",
+    PostedWithin.PAST_24H: "1",
+    PostedWithin.PAST_WEEK: "7",
     PostedWithin.PAST_MONTH: "30",
 }
 
 # Glassdoor seniorityType IDs
 _GD_SENIORITY_MAP: dict[ExperienceLevel, str] = {
-    ExperienceLevel.INTERNSHIP:  "internship",
+    ExperienceLevel.INTERNSHIP: "internship",
     ExperienceLevel.ENTRY_LEVEL: "entrylevel",
-    ExperienceLevel.ASSOCIATE:   "midseniorlevel",
-    ExperienceLevel.MID_SENIOR:  "midseniorlevel",
-    ExperienceLevel.DIRECTOR:    "director",
-    ExperienceLevel.EXECUTIVE:   "executive",
+    ExperienceLevel.ASSOCIATE: "midseniorlevel",
+    ExperienceLevel.MID_SENIOR: "midseniorlevel",
+    ExperienceLevel.DIRECTOR: "director",
+    ExperienceLevel.EXECUTIVE: "executive",
 }
 
 
@@ -58,8 +58,9 @@ class GlassdoorSource(JobSearchEngine):
         parts = [f"Glassdoor ({self.search.keywords})"]
         if self.search.location:
             parts.append(self.search.location)
-        levels = ", ".join(lvl.name.replace("_", " ").title()
-                          for lvl in self.search.experience_levels)
+        levels = ", ".join(
+            lvl.name.replace("_", " ").title() for lvl in self.search.experience_levels
+        )
         if levels:
             parts.append(levels)
         return " · ".join(parts)
@@ -105,9 +106,7 @@ class GlassdoorSource(JobSearchEngine):
         if self.search.remote_only:
             params["remoteWorkType"] = "1"
 
-        qs = "&".join(
-            f"{k}={requests.utils.quote(str(v))}" for k, v in params.items()
-        )
+        qs = "&".join(f"{k}={requests.utils.quote(str(v))}" for k, v in params.items())
         return f"{BASE_URL}?{qs}"
 
     def fetch_jobs(self) -> list[Job]:
@@ -149,7 +148,11 @@ class GlassdoorSource(JobSearchEngine):
                 title = title_tag.get_text(strip=True) if title_tag else "N/A"
 
                 # --- link ---
-                link_tag = title_tag if title_tag and title_tag.name == "a" else card.find("a", href=True)
+                link_tag = (
+                    title_tag
+                    if title_tag and title_tag.name == "a"
+                    else card.find("a", href=True)
+                )
                 href = link_tag.get("href", "") if link_tag else ""
                 if href and not href.startswith("http"):
                     href = f"https://www.glassdoor.com{href}"
@@ -164,28 +167,30 @@ class GlassdoorSource(JobSearchEngine):
                 company = company_tag.get_text(strip=True) if company_tag else "N/A"
 
                 # --- location ---
-                loc_tag = (
-                    card.find("span", attrs={"data-test": "emp-location"})
-                    or card.find("div", class_=lambda c: c and "location" in str(c).lower())
+                loc_tag = card.find(
+                    "span", attrs={"data-test": "emp-location"}
+                ) or card.find(
+                    "div", class_=lambda c: c and "location" in str(c).lower()
                 )
                 location = loc_tag.get_text(strip=True) if loc_tag else "N/A"
 
                 # --- date ---
-                date_tag = (
-                    card.find("div", attrs={"data-test": "job-age"})
-                    or card.find("span", class_=lambda c: c and "listingAge" in str(c))
-                )
+                date_tag = card.find(
+                    "div", attrs={"data-test": "job-age"}
+                ) or card.find("span", class_=lambda c: c and "listingAge" in str(c))
                 posted = date_tag.get_text(strip=True) if date_tag else "N/A"
 
                 if link:
-                    jobs.append(Job(
-                        title=title,
-                        company=company,
-                        location=location,
-                        link=link,
-                        posted=posted,
-                        source=self.name,
-                    ))
+                    jobs.append(
+                        Job(
+                            title=title,
+                            company=company,
+                            location=location,
+                            link=link,
+                            posted=posted,
+                            source=self.name,
+                        )
+                    )
 
             time.sleep(2.5)  # Glassdoor is stricter on rate-limiting
 

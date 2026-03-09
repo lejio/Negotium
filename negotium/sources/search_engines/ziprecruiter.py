@@ -17,9 +17,9 @@ BASE_URL = "https://www.ziprecruiter.com/jobs-search"
 RESULTS_PER_PAGE = 20
 
 _ZIP_DAYS_MAP: dict[PostedWithin, str] = {
-    PostedWithin.PAST_HOUR:  "1",    # no hourly option; use 1 day
-    PostedWithin.PAST_24H:   "1",
-    PostedWithin.PAST_WEEK:  "5",
+    PostedWithin.PAST_HOUR: "1",  # no hourly option; use 1 day
+    PostedWithin.PAST_24H: "1",
+    PostedWithin.PAST_WEEK: "5",
     PostedWithin.PAST_MONTH: "30",
 }
 
@@ -47,8 +47,9 @@ class ZipRecruiterSource(JobSearchEngine):
         parts = [f"ZipRecruiter ({self.search.keywords})"]
         if self.search.location:
             parts.append(self.search.location)
-        levels = ", ".join(lvl.name.replace("_", " ").title()
-                          for lvl in self.search.experience_levels)
+        levels = ", ".join(
+            lvl.name.replace("_", " ").title() for lvl in self.search.experience_levels
+        )
         if levels:
             parts.append(levels)
         return " · ".join(parts)
@@ -71,9 +72,7 @@ class ZipRecruiterSource(JobSearchEngine):
         if self.search.remote_only:
             params["refine_by_location_type"] = "only_remote"
 
-        qs = "&".join(
-            f"{k}={requests.utils.quote(str(v))}" for k, v in params.items()
-        )
+        qs = "&".join(f"{k}={requests.utils.quote(str(v))}" for k, v in params.items())
         return f"{BASE_URL}?{qs}"
 
     def fetch_jobs(self) -> list[Job]:
@@ -128,9 +127,8 @@ class ZipRecruiterSource(JobSearchEngine):
                 company = company_tag.get_text(strip=True) if company_tag else "N/A"
 
                 # --- location ---
-                loc_tag = (
-                    card.find("span", class_="location")
-                    or card.find("p", class_="location")
+                loc_tag = card.find("span", class_="location") or card.find(
+                    "p", class_="location"
                 )
                 location = loc_tag.get_text(strip=True) if loc_tag else "N/A"
 
@@ -143,14 +141,16 @@ class ZipRecruiterSource(JobSearchEngine):
                 posted = date_tag.get_text(strip=True) if date_tag else "N/A"
 
                 if link:
-                    jobs.append(Job(
-                        title=title,
-                        company=company,
-                        location=location,
-                        link=link,
-                        posted=posted,
-                        source=self.name,
-                    ))
+                    jobs.append(
+                        Job(
+                            title=title,
+                            company=company,
+                            location=location,
+                            link=link,
+                            posted=posted,
+                            source=self.name,
+                        )
+                    )
 
             time.sleep(2)  # rate-limit
 

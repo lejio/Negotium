@@ -14,10 +14,10 @@ class Job:
     company: str
     location: str
     link: str
-    posted: str                          # human-readable time string
-    source: str = ""                     # e.g. "LinkedIn", "Workday:Apple"
+    posted: str  # human-readable time string
+    source: str = ""  # e.g. "LinkedIn", "Workday:Apple"
     job_id: str = field(default="", repr=False)
-    match_score: int | None = None       # LLM-assigned 0-100 relevance score
+    match_score: int | None = None  # LLM-assigned 0-100 relevance score
 
     def __post_init__(self) -> None:
         if not self.job_id and self.link:

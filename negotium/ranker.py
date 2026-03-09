@@ -61,10 +61,7 @@ def rank_job(job: "Job", config: "LLMConfig", resume_text: str) -> int:
         return -1
 
     job_text = _build_job_text(job)
-    user_prompt = (
-        f"=== RESUME ===\n{resume_text}\n\n"
-        f"=== JOB LISTING ===\n{job_text}"
-    )
+    user_prompt = f"=== RESUME ===\n{resume_text}\n\n=== JOB LISTING ===\n{job_text}"
 
     try:
         if config.provider == "local":

@@ -18,19 +18,19 @@ RESULTS_PER_PAGE = 10  # Indeed shows 10 or 15 per page
 
 # Indeed uses different param values than LinkedIn
 _INDEED_DATE_MAP: dict[PostedWithin, str] = {
-    PostedWithin.PAST_HOUR:  "last",     # no exact 1-hour; "last" ≈ recent
-    PostedWithin.PAST_24H:   "1",
-    PostedWithin.PAST_WEEK:  "7",
+    PostedWithin.PAST_HOUR: "last",  # no exact 1-hour; "last" ≈ recent
+    PostedWithin.PAST_24H: "1",
+    PostedWithin.PAST_WEEK: "7",
     PostedWithin.PAST_MONTH: "30",
 }
 
 _INDEED_EXPLVL_MAP: dict[ExperienceLevel, str] = {
-    ExperienceLevel.INTERNSHIP:  "INTERNSHIP",
+    ExperienceLevel.INTERNSHIP: "INTERNSHIP",
     ExperienceLevel.ENTRY_LEVEL: "ENTRY_LEVEL",
-    ExperienceLevel.ASSOCIATE:   "MID_LEVEL",
-    ExperienceLevel.MID_SENIOR:  "MID_LEVEL",
-    ExperienceLevel.DIRECTOR:    "SENIOR_LEVEL",
-    ExperienceLevel.EXECUTIVE:   "SENIOR_LEVEL",
+    ExperienceLevel.ASSOCIATE: "MID_LEVEL",
+    ExperienceLevel.MID_SENIOR: "MID_LEVEL",
+    ExperienceLevel.DIRECTOR: "SENIOR_LEVEL",
+    ExperienceLevel.EXECUTIVE: "SENIOR_LEVEL",
 }
 
 
@@ -58,8 +58,9 @@ class IndeedSource(JobSearchEngine):
         parts = [f"Indeed ({self.search.keywords})"]
         if self.search.location:
             parts.append(self.search.location)
-        levels = ", ".join(lvl.name.replace("_", " ").title()
-                          for lvl in self.search.experience_levels)
+        levels = ", ".join(
+            lvl.name.replace("_", " ").title() for lvl in self.search.experience_levels
+        )
         if levels:
             parts.append(levels)
         return " · ".join(parts)
@@ -90,9 +91,7 @@ class IndeedSource(JobSearchEngine):
         if self.search.remote_only:
             params["remotejob"] = "032b3046-06a3-4876-8dfd-474eb5e7ed11"
 
-        qs = "&".join(
-            f"{k}={requests.utils.quote(str(v))}" for k, v in params.items()
-        )
+        qs = "&".join(f"{k}={requests.utils.quote(str(v))}" for k, v in params.items())
         return f"{BASE_URL}?{qs}"
 
     def fetch_jobs(self) -> list[Job]:
@@ -124,9 +123,8 @@ class IndeedSource(JobSearchEngine):
 
             for card in cards:
                 # --- title & link ---
-                title_tag = (
-                    card.find("h2", class_="jobTitle")
-                    or card.find("a", class_="jcs-JobTitle")
+                title_tag = card.find("h2", class_="jobTitle") or card.find(
+                    "a", class_="jcs-JobTitle"
                 )
                 title = title_tag.get_text(strip=True) if title_tag else "N/A"
 
@@ -137,17 +135,15 @@ class IndeedSource(JobSearchEngine):
                 link = href.split("&")[0] if href else ""  # clean tracking params
 
                 # --- company ---
-                company_tag = (
-                    card.find("span", attrs={"data-testid": "company-name"})
-                    or card.find("span", class_="companyName")
-                )
+                company_tag = card.find(
+                    "span", attrs={"data-testid": "company-name"}
+                ) or card.find("span", class_="companyName")
                 company = company_tag.get_text(strip=True) if company_tag else "N/A"
 
                 # --- location ---
-                loc_tag = (
-                    card.find("div", attrs={"data-testid": "text-location"})
-                    or card.find("div", class_="companyLocation")
-                )
+                loc_tag = card.find(
+                    "div", attrs={"data-testid": "text-location"}
+                ) or card.find("div", class_="companyLocation")
                 location = loc_tag.get_text(strip=True) if loc_tag else "N/A"
 
                 # --- date ---
@@ -155,14 +151,16 @@ class IndeedSource(JobSearchEngine):
                 posted = date_tag.get_text(strip=True) if date_tag else "N/A"
 
                 if link:
-                    jobs.append(Job(
-                        title=title,
-                        company=company,
-                        location=location,
-                        link=link,
-                        posted=posted,
-                        source=self.name,
-                    ))
+                    jobs.append(
+                        Job(
+                            title=title,
+                            company=company,
+                            location=location,
+                            link=link,
+                            posted=posted,
+                            source=self.name,
+                        )
+                    )
 
             time.sleep(2)  # rate-limit
 

@@ -31,8 +31,11 @@ class TestJobCreation:
 
     def test_explicit_job_id_preserved(self):
         job = Job(
-            title="T", company="C", location="L",
-            link="https://example.com/1", posted="now",
+            title="T",
+            company="C",
+            location="L",
+            link="https://example.com/1",
+            posted="now",
             job_id="custom-id-123",
         )
         assert job.job_id == "custom-id-123"
@@ -53,11 +56,19 @@ class TestJobEquality:
     """Test that jobs with different links get different IDs."""
 
     def test_different_links_different_ids(self):
-        job_a = Job(title="T", company="C", location="L", link="https://a.com/1", posted="now")
-        job_b = Job(title="T", company="C", location="L", link="https://a.com/2", posted="now")
+        job_a = Job(
+            title="T", company="C", location="L", link="https://a.com/1", posted="now"
+        )
+        job_b = Job(
+            title="T", company="C", location="L", link="https://a.com/2", posted="now"
+        )
         assert job_a.job_id != job_b.job_id
 
     def test_same_link_same_id(self):
-        job_a = Job(title="A", company="X", location="L", link="https://a.com/1", posted="now")
-        job_b = Job(title="B", company="Y", location="L", link="https://a.com/1", posted="later")
+        job_a = Job(
+            title="A", company="X", location="L", link="https://a.com/1", posted="now"
+        )
+        job_b = Job(
+            title="B", company="Y", location="L", link="https://a.com/1", posted="later"
+        )
         assert job_a.job_id == job_b.job_id

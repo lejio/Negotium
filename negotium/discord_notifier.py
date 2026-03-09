@@ -49,11 +49,13 @@ def send_discord_notification(
 
         # If the job has an LLM match score, show it
         if hasattr(job, "match_score") and job.match_score is not None:
-            embed["fields"].append({
-                "name": "Match Score",
-                "value": f"**{job.match_score}/100**",
-                "inline": True,
-            })
+            embed["fields"].append(
+                {
+                    "name": "Match Score",
+                    "value": f"**{job.match_score}/100**",
+                    "inline": True,
+                }
+            )
 
         embeds.append(embed)
 

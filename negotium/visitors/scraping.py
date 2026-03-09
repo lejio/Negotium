@@ -8,11 +8,8 @@ configuration (URLs, selectors, query params, etc.).
 
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING
 
-import requests
-from bs4 import BeautifulSoup
 
 from negotium.models.job import Job
 

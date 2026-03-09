@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
-import pytest
 
 from negotium.config import DiscordConfig
 from negotium.discord_notifier import EMBED_COLOR, send_discord_notification
@@ -68,7 +67,9 @@ class TestSendDiscordNotification:
     def test_does_nothing_when_url_empty(self, disabled_discord_config):
         # Should not raise or call requests
         with patch("negotium.discord_notifier.requests.post") as mock_post:
-            send_discord_notification(disabled_discord_config, "Test", self._make_jobs())
+            send_discord_notification(
+                disabled_discord_config, "Test", self._make_jobs()
+            )
             mock_post.assert_not_called()
 
     def test_does_nothing_when_jobs_empty(self, discord_config):
@@ -134,6 +135,7 @@ class TestSendDiscordNotification:
     @patch("negotium.discord_notifier.requests.post")
     def test_handles_request_exception(self, mock_post, discord_config):
         import requests
+
         mock_post.side_effect = requests.RequestException("connection failed")
         # Should not raise
         send_discord_notification(discord_config, "Test", self._make_jobs())

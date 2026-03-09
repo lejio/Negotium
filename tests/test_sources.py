@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from negotium.config import ExperienceLevel, PostedWithin, SearchConfig
-from negotium.models.job import Job
-from negotium.sources.base import ATSPlatform, CompanyWebsite, JobSearchEngine, JobSource
+from negotium.sources.base import (
+    JobSearchEngine,
+    JobSource,
+)
 from negotium.sources.search_engines.glassdoor import GlassdoorSource
 from negotium.sources.search_engines.indeed import IndeedSource
 from negotium.sources.search_engines.linkedin import LinkedInSource
@@ -53,9 +54,7 @@ class TestLinkedInSource:
         assert "software engineer" in source.name
 
     def test_name_with_location(self):
-        source = LinkedInSource(
-            search=SearchConfig(keywords="swe", location="NYC")
-        )
+        source = LinkedInSource(search=SearchConfig(keywords="swe", location="NYC"))
         assert "NYC" in source.name
 
     def test_build_url_contains_keywords(self):
@@ -78,7 +77,10 @@ class TestLinkedInSource:
     def test_build_url_multiple_experience_levels(self):
         source = LinkedInSource(
             search=SearchConfig(
-                experience_levels=[ExperienceLevel.ENTRY_LEVEL, ExperienceLevel.MID_SENIOR]
+                experience_levels=[
+                    ExperienceLevel.ENTRY_LEVEL,
+                    ExperienceLevel.MID_SENIOR,
+                ]
             )
         )
         url = source._build_url()
@@ -92,9 +94,7 @@ class TestLinkedInSource:
         assert "f_TPR=r604800" in url
 
     def test_build_url_location(self):
-        source = LinkedInSource(
-            search=SearchConfig(location="San Francisco")
-        )
+        source = LinkedInSource(search=SearchConfig(location="San Francisco"))
         url = source._build_url()
         assert "location=" in url
         assert "San" in url
@@ -125,7 +125,10 @@ class TestLinkedInSource:
         mock_resp.status_code = 200
         mock_resp.text = html
 
-        with patch("negotium.sources.search_engines.linkedin.requests.get", return_value=mock_resp):
+        with patch(
+            "negotium.sources.search_engines.linkedin.requests.get",
+            return_value=mock_resp,
+        ):
             jobs = source.fetch_jobs()
 
         assert len(jobs) == 1
@@ -141,7 +144,10 @@ class TestLinkedInSource:
         mock_resp = MagicMock()
         mock_resp.status_code = 429
 
-        with patch("negotium.sources.search_engines.linkedin.requests.get", return_value=mock_resp):
+        with patch(
+            "negotium.sources.search_engines.linkedin.requests.get",
+            return_value=mock_resp,
+        ):
             jobs = source.fetch_jobs()
 
         assert jobs == []
@@ -149,6 +155,7 @@ class TestLinkedInSource:
     def test_fetch_jobs_handles_request_exception(self):
         source = LinkedInSource(max_pages=1)
         import requests
+
         with patch(
             "negotium.sources.search_engines.linkedin.requests.get",
             side_effect=requests.RequestException("timeout"),
@@ -163,7 +170,10 @@ class TestLinkedInSource:
         mock_resp.status_code = 200
         mock_resp.text = "<html><body></body></html>"
 
-        with patch("negotium.sources.search_engines.linkedin.requests.get", return_value=mock_resp):
+        with patch(
+            "negotium.sources.search_engines.linkedin.requests.get",
+            return_value=mock_resp,
+        ):
             jobs = source.fetch_jobs()
 
         assert jobs == []
@@ -176,7 +186,9 @@ class TestIndeedSource:
     """Test Indeed source URL building and parsing."""
 
     def test_name(self):
-        source = IndeedSource(search=SearchConfig(keywords="data analyst", location="Boston"))
+        source = IndeedSource(
+            search=SearchConfig(keywords="data analyst", location="Boston")
+        )
         assert "Indeed" in source.name
         assert "data analyst" in source.name
         assert "Boston" in source.name
@@ -228,7 +240,10 @@ class TestIndeedSource:
         mock_resp.status_code = 200
         mock_resp.text = html
 
-        with patch("negotium.sources.search_engines.indeed.requests.get", return_value=mock_resp):
+        with patch(
+            "negotium.sources.search_engines.indeed.requests.get",
+            return_value=mock_resp,
+        ):
             jobs = source.fetch_jobs()
 
         assert len(jobs) == 1
@@ -290,7 +305,10 @@ class TestZipRecruiterSource:
         mock_resp.status_code = 200
         mock_resp.text = html
 
-        with patch("negotium.sources.search_engines.ziprecruiter.requests.get", return_value=mock_resp):
+        with patch(
+            "negotium.sources.search_engines.ziprecruiter.requests.get",
+            return_value=mock_resp,
+        ):
             jobs = source.fetch_jobs()
 
         assert len(jobs) == 1
@@ -305,7 +323,9 @@ class TestGlassdoorSource:
     """Test Glassdoor source URL building and parsing."""
 
     def test_name(self):
-        source = GlassdoorSource(search=SearchConfig(keywords="ml engineer", location="Seattle"))
+        source = GlassdoorSource(
+            search=SearchConfig(keywords="ml engineer", location="Seattle")
+        )
         assert "Glassdoor" in source.name
         assert "ml engineer" in source.name
         assert "Seattle" in source.name

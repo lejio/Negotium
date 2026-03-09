@@ -37,13 +37,11 @@ from negotium.visitors.scraping import ScrapingVisitor
 
 CONFIG = AppConfig(
     check_interval_minutes=15,
-
     # ── Discord webhook (leave url empty to disable) ──────────────────
     discord=DiscordConfig(
-        webhook_url="",                  # paste your webhook URL here
+        webhook_url="",  # paste your webhook URL here
         username="Negotium Bot",
     ),
-
     # ── LLM job ranking (set enabled=True to activate) ────────────────
     # Provider options:
     #   "openai" — uses OpenAI API (needs api_key or OPENAI_API_KEY env var)
@@ -52,12 +50,12 @@ CONFIG = AppConfig(
     #              llama.cpp (localhost:8080), vLLM (localhost:8000), etc.
     llm=LLMConfig(
         enabled=False,
-        provider="openai",               # "openai" or "local"
-        model="gpt-4o-mini",             # or e.g. "llama3.2" for Ollama
-        api_key="",                      # or set OPENAI_API_KEY env var
+        provider="openai",  # "openai" or "local"
+        model="gpt-4o-mini",  # or e.g. "llama3.2" for Ollama
+        api_key="",  # or set OPENAI_API_KEY env var
         base_url="http://localhost:11434/v1",  # only used when provider="local"
         resume_path=__import__("pathlib").Path("resume.txt"),
-        min_score_to_notify=0,           # only notify for jobs >= this score
+        min_score_to_notify=0,  # only notify for jobs >= this score
     ),
 )
 
@@ -69,7 +67,7 @@ SOURCES: list[JobSource] = [
             keywords="software engineer",
             experience_levels=[ExperienceLevel.ENTRY_LEVEL],
             posted_within=PostedWithin.PAST_24H,
-            location="",                 # e.g. "San Francisco, CA"
+            location="",  # e.g. "San Francisco, CA"
             remote_only=False,
         ),
     ),
@@ -99,6 +97,7 @@ SOURCES: list[JobSource] = [
 
 # ─── Core Loop ───────────────────────────────────────────────────────────────
 
+
 def check_for_new_jobs() -> None:
     """Run one check cycle: visit every source, diff, rank, notify, persist."""
     visitor = ScrapingVisitor()
@@ -122,7 +121,8 @@ def check_for_new_jobs() -> None:
             # Filter by minimum score
             if CONFIG.llm.min_score_to_notify > 0:
                 new_jobs = [
-                    j for j in new_jobs
+                    j
+                    for j in new_jobs
                     if j.match_score is None
                     or j.match_score < 0
                     or j.match_score >= CONFIG.llm.min_score_to_notify
@@ -132,7 +132,9 @@ def check_for_new_jobs() -> None:
 
         print(f"    ✅ {len(new_jobs)} new listing(s) found!")
         for j in new_jobs:
-            score_str = f" [Score: {j.match_score}/100]" if j.match_score is not None else ""
+            score_str = (
+                f" [Score: {j.match_score}/100]" if j.match_score is not None else ""
+            )
             print(f"       • {j.title} @ {j.company} — {j.location}{score_str}")
             print(f"         {j.link}")
             print(f"         Posted: {j.posted}")
@@ -150,12 +152,15 @@ def check_for_new_jobs() -> None:
         send_discord_notification(CONFIG.discord, source.name, new_jobs)
 
     save_seen_jobs(seen)
-    print(f"\n[✓] Cycle done. {new_total} new job(s) across "
-          f"{len(SOURCES)} source(s). "
-          f"Next check in {CONFIG.check_interval_minutes} min.\n")
+    print(
+        f"\n[✓] Cycle done. {new_total} new job(s) across "
+        f"{len(SOURCES)} source(s). "
+        f"Next check in {CONFIG.check_interval_minutes} min.\n"
+    )
 
 
 # ─── Entry Point ─────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     print("=" * 60)

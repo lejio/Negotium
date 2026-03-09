@@ -8,14 +8,12 @@ from dataclasses import dataclass, field
 import requests
 from bs4 import BeautifulSoup
 
-from negotium.config import SearchConfig, ExperienceLevel, PostedWithin
+from negotium.config import SearchConfig
 from negotium.models.job import Job
 from negotium.sources.base import JobSearchEngine
 
 
-BASE_URL = (
-    "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
-)
+BASE_URL = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
 RESULTS_PER_PAGE = 25
 
 
@@ -45,8 +43,9 @@ class LinkedInSource(JobSearchEngine):
         parts = [f"LinkedIn ({self.search.keywords})"]
         if self.search.location:
             parts.append(self.search.location)
-        levels = ", ".join(lvl.name.replace("_", " ").title()
-                          for lvl in self.search.experience_levels)
+        levels = ", ".join(
+            lvl.name.replace("_", " ").title() for lvl in self.search.experience_levels
+        )
         if levels:
             parts.append(levels)
         return " · ".join(parts)
@@ -57,7 +56,7 @@ class LinkedInSource(JobSearchEngine):
         params: dict[str, str] = {
             "keywords": self.search.keywords,
             "start": str(start),
-            "sortBy": "DD",                              # newest first
+            "sortBy": "DD",  # newest first
             "f_TPR": self.search.posted_within.value,
             "f_E": self.search.experience_filter_value,
         }
@@ -66,9 +65,7 @@ class LinkedInSource(JobSearchEngine):
         if self.search.remote_only:
             params["f_WT"] = "2"  # remote work type
 
-        qs = "&".join(
-            f"{k}={requests.utils.quote(str(v))}" for k, v in params.items()
-        )
+        qs = "&".join(f"{k}={requests.utils.quote(str(v))}" for k, v in params.items())
         return f"{BASE_URL}?{qs}"
 
     def fetch_jobs(self) -> list[Job]:
@@ -108,14 +105,16 @@ class LinkedInSource(JobSearchEngine):
                 posted = time_tag.get_text(strip=True) if time_tag else "N/A"
 
                 if link:
-                    jobs.append(Job(
-                        title=title,
-                        company=company,
-                        location=location,
-                        link=link,
-                        posted=posted,
-                        source=self.name,
-                    ))
+                    jobs.append(
+                        Job(
+                            title=title,
+                            company=company,
+                            location=location,
+                            link=link,
+                            posted=posted,
+                            source=self.name,
+                        )
+                    )
 
             time.sleep(1.5)  # rate-limit between pages
 

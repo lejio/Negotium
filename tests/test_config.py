@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 
 from negotium.config import (
     AppConfig,
@@ -10,7 +9,6 @@ from negotium.config import (
     ExperienceLevel,
     LLMConfig,
     PostedWithin,
-    SearchConfig,
 )
 
 

@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from negotium.models.job import Job
-from negotium.sources.base import JobSearchEngine
 from negotium.sources.search_engines.linkedin import LinkedInSource
 from negotium.visitors.scraping import ScrapingVisitor
 
@@ -17,7 +16,13 @@ class TestScrapingVisitor:
         visitor = ScrapingVisitor()
         source = MagicMock()
         expected = [
-            Job(title="T", company="C", location="L", link="https://x.com/1", posted="now")
+            Job(
+                title="T",
+                company="C",
+                location="L",
+                link="https://x.com/1",
+                posted="now",
+            )
         ]
         source.fetch_jobs.return_value = expected
 
