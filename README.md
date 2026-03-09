@@ -166,7 +166,13 @@ Negotium/
     │   ├── base.py                          # JobSource ABC → 3 categories
     │   ├── search_engines/
     │   │   ├── __init__.py
-    │   │   └── linkedin.py                  # LinkedIn source (implemented)
+    │   │   ├── linkedin.py                  # LinkedIn public API
+    │   │   ├── indeed.py                    # Indeed listings
+    │   │   ├── ziprecruiter.py              # ZipRecruiter listings
+    │   │   ├── glassdoor.py                 # Glassdoor listings
+    │   │   ├── handshake.py                 # Handshake (students/grads)
+    │   │   ├── dice.py                      # Dice (tech/IT jobs)
+    │   │   └── flexjobs.py                  # FlexJobs (remote/flexible)
     │   ├── company_sites/
     │   │   └── __init__.py                  # Stub — direct career pages
     │   └── ats_platforms/
@@ -188,7 +194,7 @@ The project uses the **Visitor pattern** with two axes of extension:
 
 **Source categories:**
 
-- **JobSearchEngine** — Aggregator boards (LinkedIn, Indeed, Glassdoor)
+- **JobSearchEngine** — Aggregator boards (LinkedIn, Indeed, Glassdoor, Dice, FlexJobs, Handshake, ZipRecruiter)
 - **CompanyWebsite** — First-party career pages (e.g. apple.com/careers)
 - **ATSPlatform** — Hosted ATS portals (Workday, Oracle Cloud, Greenhouse)
 - **CompanyWebsite** — First-party career pages (e.g. apple.com/careers)

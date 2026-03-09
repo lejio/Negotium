@@ -31,6 +31,9 @@ from negotium.sources.search_engines.linkedin import LinkedInSource
 from negotium.sources.search_engines.indeed import IndeedSource
 from negotium.sources.search_engines.ziprecruiter import ZipRecruiterSource
 from negotium.sources.search_engines.glassdoor import GlassdoorSource
+from negotium.sources.search_engines.handshake import HandshakeSource
+from negotium.sources.search_engines.dice import DiceSource
+from negotium.sources.search_engines.flexjobs import FlexJobsSource
 from negotium.visitors.scraping import ScrapingVisitor
 
 # ─── Configuration ───────────────────────────────────────────────────────────
@@ -90,6 +93,27 @@ SOURCES: list[JobSource] = [
             keywords="software engineer",
             experience_levels=[ExperienceLevel.ENTRY_LEVEL],
             location="New York, NY",
+        ),
+    ),
+    HandshakeSource(
+        search=SearchConfig(
+            keywords="software engineer",
+            experience_levels=[ExperienceLevel.ENTRY_LEVEL],
+            location="New York, NY",
+        ),
+    ),
+    DiceSource(
+        search=SearchConfig(
+            keywords="software engineer",
+            experience_levels=[ExperienceLevel.ENTRY_LEVEL],
+            location="New York, NY",
+        ),
+    ),
+    FlexJobsSource(
+        search=SearchConfig(
+            keywords="software engineer",
+            experience_levels=[ExperienceLevel.ENTRY_LEVEL],
+            remote_only=True,
         ),
     ),
 ]

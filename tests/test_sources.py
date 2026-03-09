@@ -10,7 +10,10 @@ from negotium.sources.base import (
     JobSearchEngine,
     JobSource,
 )
+from negotium.sources.search_engines.dice import DiceSource
+from negotium.sources.search_engines.flexjobs import FlexJobsSource
 from negotium.sources.search_engines.glassdoor import GlassdoorSource
+from negotium.sources.search_engines.handshake import HandshakeSource
 from negotium.sources.search_engines.indeed import IndeedSource
 from negotium.sources.search_engines.linkedin import LinkedInSource
 from negotium.sources.search_engines.ziprecruiter import ZipRecruiterSource
@@ -36,7 +39,15 @@ class TestJobSourceBase:
         assert "Mozilla" in headers["User-Agent"]
 
     def test_all_search_engines_are_job_sources(self):
-        for cls in [LinkedInSource, IndeedSource, ZipRecruiterSource, GlassdoorSource]:
+        for cls in [
+            LinkedInSource,
+            IndeedSource,
+            ZipRecruiterSource,
+            GlassdoorSource,
+            HandshakeSource,
+            DiceSource,
+            FlexJobsSource,
+        ]:
             source = cls()
             assert isinstance(source, JobSource)
             assert isinstance(source, JobSearchEngine)
@@ -376,3 +387,240 @@ class TestGlassdoorSource:
         url_p2 = source._build_url(page=2)
         assert "p=" not in url_p1  # page 1 omits p param
         assert "p=2" in url_p2
+
+
+# ─── Handshake ───────────────────────────────────────────────────────────────
+
+
+class TestHandshakeSource:
+    """Test Handshake source URL building and parsing."""
+
+    def test_name(self):
+        source = HandshakeSource(
+            search=SearchConfig(keywords="frontend", location="Boston")
+        )
+        assert "Handshake" in source.name
+        assert "frontend" in source.name
+        assert "Boston" in source.name
+
+    def test_build_url_keywords(self):
+        source = HandshakeSource(search=SearchConfig(keywords="data science"))
+        url = source._build_url()
+        assert "q=data" in url
+
+    def test_build_url_sort_recent(self):
+        source = HandshakeSource()
+        url = source._build_url()
+        assert "sort=recent" in url
+
+    def test_build_url_location(self):
+        source = HandshakeSource(search=SearchConfig(location="Chicago"))
+        url = source._build_url()
+        assert "location=Chicago" in url
+
+    def test_build_url_posted(self):
+        source = HandshakeSource(
+            search=SearchConfig(posted_within=PostedWithin.PAST_WEEK)
+        )
+        url = source._build_url()
+        assert "posted=this_week" in url
+
+    def test_build_url_experience_level(self):
+        source = HandshakeSource(
+            search=SearchConfig(experience_levels=[ExperienceLevel.INTERNSHIP])
+        )
+        url = source._build_url()
+        assert "job_type=internship" in url
+
+    def test_build_url_remote(self):
+        source = HandshakeSource(search=SearchConfig(remote_only=True))
+        url = source._build_url()
+        assert "remote=true" in url
+
+    def test_build_url_pagination(self):
+        source = HandshakeSource()
+        url_p1 = source._build_url(page=1)
+        url_p2 = source._build_url(page=2)
+        assert "page=" not in url_p1
+        assert "page=2" in url_p2
+
+    def test_fetch_jobs_parses_html(self):
+        html = """
+        <div data-hook="job-card">
+            <h3>Junior Developer</h3>
+            <a href="/jobs/12345">Apply</a>
+            <div class="employer-name">StartupCo</div>
+            <span class="location-text">Remote</span>
+            <span class="date-posted">Today</span>
+        </div>
+        """
+        source = HandshakeSource(max_pages=1)
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = html
+
+        with patch(
+            "negotium.sources.search_engines.handshake.requests.get",
+            return_value=mock_resp,
+        ):
+            jobs = source.fetch_jobs()
+
+        assert len(jobs) == 1
+        assert jobs[0].title == "Junior Developer"
+        assert "handshake.com" in jobs[0].link
+
+
+# ─── Dice ────────────────────────────────────────────────────────────────────
+
+
+class TestDiceSource:
+    """Test Dice source URL building and parsing."""
+
+    def test_name(self):
+        source = DiceSource(
+            search=SearchConfig(keywords="java developer", location="Dallas")
+        )
+        assert "Dice" in source.name
+        assert "java developer" in source.name
+        assert "Dallas" in source.name
+
+    def test_build_url_keywords(self):
+        source = DiceSource(search=SearchConfig(keywords="python"))
+        url = source._build_url()
+        assert "q=python" in url
+
+    def test_build_url_location(self):
+        source = DiceSource(search=SearchConfig(location="Austin"))
+        url = source._build_url()
+        assert "location=Austin" in url
+
+    def test_build_url_posted_date(self):
+        source = DiceSource(search=SearchConfig(posted_within=PostedWithin.PAST_WEEK))
+        url = source._build_url()
+        assert "filters.postedDate=SEVEN" in url
+
+    def test_build_url_experience_level(self):
+        source = DiceSource(
+            search=SearchConfig(experience_levels=[ExperienceLevel.MID_SENIOR])
+        )
+        url = source._build_url()
+        assert "filters.experienceLevel=SENIOR" in url
+
+    def test_build_url_remote(self):
+        source = DiceSource(search=SearchConfig(remote_only=True))
+        url = source._build_url()
+        assert "filters.isRemote=true" in url
+
+    def test_build_url_pagination(self):
+        source = DiceSource()
+        url = source._build_url(page=3)
+        assert "page=3" in url
+
+    def test_build_url_country_code(self):
+        source = DiceSource()
+        url = source._build_url()
+        assert "countryCode=US" in url
+
+    def test_fetch_jobs_parses_html(self):
+        html = """
+        <dhi-search-card>
+            <a data-cy="card-title-link" href="/jobs/detail/abc123">
+                Python Developer
+            </a>
+            <a data-cy="search-result-company-name">TechCorp</a>
+            <span data-cy="search-result-location">Austin, TX</span>
+            <span data-cy="card-posted-date">1 day ago</span>
+        </dhi-search-card>
+        """
+        source = DiceSource(max_pages=1)
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = html
+
+        with patch(
+            "negotium.sources.search_engines.dice.requests.get",
+            return_value=mock_resp,
+        ):
+            jobs = source.fetch_jobs()
+
+        assert len(jobs) == 1
+        assert jobs[0].title == "Python Developer"
+        assert jobs[0].company == "TechCorp"
+        assert "dice.com" in jobs[0].link
+
+
+# ─── FlexJobs ────────────────────────────────────────────────────────────────
+
+
+class TestFlexJobsSource:
+    """Test FlexJobs source URL building and parsing."""
+
+    def test_name(self):
+        source = FlexJobsSource(
+            search=SearchConfig(keywords="remote engineer", location="Denver")
+        )
+        assert "FlexJobs" in source.name
+        assert "remote engineer" in source.name
+        assert "Denver" in source.name
+
+    def test_build_url_keywords(self):
+        source = FlexJobsSource(search=SearchConfig(keywords="react"))
+        url = source._build_url()
+        assert "search=react" in url
+
+    def test_build_url_location(self):
+        source = FlexJobsSource(search=SearchConfig(location="Portland"))
+        url = source._build_url()
+        assert "location=Portland" in url
+
+    def test_build_url_within_days(self):
+        source = FlexJobsSource(
+            search=SearchConfig(posted_within=PostedWithin.PAST_MONTH)
+        )
+        url = source._build_url()
+        assert "within_days=30" in url
+
+    def test_build_url_experience(self):
+        source = FlexJobsSource(
+            search=SearchConfig(experience_levels=[ExperienceLevel.ENTRY_LEVEL])
+        )
+        url = source._build_url()
+        assert "experience=Entry-Level" in url
+
+    def test_build_url_remote(self):
+        source = FlexJobsSource(search=SearchConfig(remote_only=True))
+        url = source._build_url()
+        assert "tele_type" in url
+
+    def test_build_url_pagination(self):
+        source = FlexJobsSource()
+        url_p1 = source._build_url(page=1)
+        url_p2 = source._build_url(page=2)
+        assert "page=" not in url_p1
+        assert "page=2" in url_p2
+
+    def test_fetch_jobs_parses_html(self):
+        html = """
+        <div class="job-card">
+            <a class="job-title" href="/jobs/remote-engineer-456">
+                Remote Software Engineer
+            </a>
+            <span class="company-name">FlexCorp</span>
+            <span class="location-text">Remote</span>
+            <span class="date-posted">3 days ago</span>
+        </div>
+        """
+        source = FlexJobsSource(max_pages=1)
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = html
+
+        with patch(
+            "negotium.sources.search_engines.flexjobs.requests.get",
+            return_value=mock_resp,
+        ):
+            jobs = source.fetch_jobs()
+
+        assert len(jobs) == 1
+        assert jobs[0].title == "Remote Software Engineer"
+        assert "flexjobs.com" in jobs[0].link
