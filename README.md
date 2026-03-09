@@ -1,5 +1,7 @@
 # Negotium
 
+[![CI](https://github.com/lejio/Negotium/actions/workflows/ci.yml/badge.svg)](https://github.com/lejio/Negotium/actions/workflows/ci.yml)
+
 An extensible job alert bot that monitors multiple platforms for new postings and sends notifications (macOS desktop + Discord) when listings match your criteria. Optionally ranks jobs against your resume using an LLM.
 
 ## Features
@@ -114,15 +116,42 @@ python3 main.py
 
 The bot will immediately run a check, then repeat every 15 minutes. Press `Ctrl+C` to stop.
 
+## Testing
+
+```bash
+# Run the full test suite with coverage
+python -m pytest
+
+# Run a specific test file
+python -m pytest tests/test_sources.py -v
+
+# Run without coverage output
+python -m pytest tests/ --no-cov
+```
+
 ## Project Structure
 
 ```
 Negotium/
-├── main.py                                  # Entry point & configuration
-├── requirements.txt                         # Python dependencies
-├── seen_jobs.json                           # Auto-generated seen-job tracker
-├── resume.txt                               # Your resume (for LLM ranking)
-└── negotium/                                # Core package
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                               # Lint + test on push/PR
+│       └── cd.yml                               # Package + deploy on release
+├── main.py                                      # Entry point & configuration
+├── pyproject.toml                               # Pytest & coverage config
+├── requirements.txt                             # Python dependencies
+├── seen_jobs.json                               # Auto-generated seen-job tracker
+├── resume.txt                                   # Your resume (for LLM ranking)
+├── tests/                                       # Test suite (pytest)
+│   ├── conftest.py                              # Shared fixtures
+│   ├── test_config.py                           # Config & enum tests
+│   ├── test_models.py                           # Job dataclass tests
+│   ├── test_notifications.py                    # macOS & Discord tests
+│   ├── test_persistence.py                      # Seen-jobs persistence tests
+│   ├── test_ranker.py                           # LLM ranker tests
+│   ├── test_sources.py                          # Source URL building & parsing
+│   └── test_visitors.py                         # Visitor dispatch tests
+└── negotium/                                    # Core package
     ├── __init__.py
     ├── config.py                            # SearchConfig, ExperienceLevel, etc.
     ├── notification.py                      # macOS desktop notifications
