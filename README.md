@@ -14,7 +14,7 @@ An extensible job alert bot that monitors multiple platforms for new postings an
 - **macOS desktop notifications** with sound for new postings
 - **Discord webhook notifications** — rich embeds with job details sent to a channel
 - **LLM job ranking** — scores each job 0-100 against your resume (OpenAI, optional)
-- Tracks seen jobs in `seen_jobs.json` to avoid duplicate alerts
+- Tracks seen jobs in `.seen_jobs.json` to avoid duplicate alerts
 - Runs on a configurable polling interval (default: every 15 minutes)
 - **Visitor pattern architecture** — cleanly extensible for new platforms and operations
 
@@ -140,7 +140,7 @@ Negotium/
 ├── main.py                                      # Entry point & configuration
 ├── pyproject.toml                               # Pytest & coverage config
 ├── requirements.txt                             # Python dependencies
-├── seen_jobs.json                               # Auto-generated seen-job tracker
+├── .seen_jobs.json                              # Auto-generated seen-job tracker (gitignored)
 ├── resume.txt                                   # Your resume (for LLM ranking)
 ├── tests/                                       # Test suite (pytest)
 │   ├── conftest.py                              # Shared fixtures

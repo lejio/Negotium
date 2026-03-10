@@ -214,3 +214,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Negotium — seen-job tracker
+.seen_jobs.json

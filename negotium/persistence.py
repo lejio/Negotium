@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-DEFAULT_PATH = Path(__file__).resolve().parent.parent / "seen_jobs.json"
+DEFAULT_PATH = Path(__file__).resolve().parent.parent / ".seen_jobs.json"
 
 
 def load_seen_jobs(path: Path = DEFAULT_PATH) -> set[str]:
