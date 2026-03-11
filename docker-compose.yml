@@ -1,0 +1,23 @@
+# ─────────────────────────────────────────────────────────────────────
+# Negotium — Docker Compose
+#
+# Usage:
+#   docker compose up        # run in foreground
+#   docker compose up -d     # run in background
+#   docker compose logs -f   # tail logs
+#   docker compose down      # stop
+# ─────────────────────────────────────────────────────────────────────
+services:
+  negotium:
+    build: .
+    container_name: negotium
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Persist seen-jobs DB so restarts don't re-notify
+      - ./data:/app/data
+      # Mount resume if using LLM ranking
+      - ./resume.txt:/app/resume.txt:ro
+    # Chromium needs shared memory
+    shm_size: "256m"

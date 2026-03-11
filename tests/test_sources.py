@@ -247,13 +247,12 @@ class TestIndeedSource:
         </div>
         """
         source = IndeedSource(max_pages=1)
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.text = html
+        mock_driver = MagicMock()
+        mock_driver.page_source = html
 
         with patch(
-            "negotium.sources.search_engines.indeed.requests.get",
-            return_value=mock_resp,
+            "negotium.sources.search_engines.indeed.make_undetected_driver",
+            return_value=mock_driver,
         ):
             jobs = source.fetch_jobs()
 
@@ -261,6 +260,7 @@ class TestIndeedSource:
         assert jobs[0].title == "Data Analyst"
         assert jobs[0].company == "DataCo"
         assert "indeed.com" in jobs[0].link
+        mock_driver.quit.assert_called_once()
 
 
 # ─── ZipRecruiter ────────────────────────────────────────────────────────────
@@ -303,28 +303,36 @@ class TestZipRecruiterSource:
 
     def test_fetch_jobs_parses_html(self):
         html = """
-        <article class="job_result">
-            <h2 class="job_title">DevOps Engineer</h2>
-            <a href="https://www.ziprecruiter.com/jobs/devops-1?mid=x">Apply</a>
-            <a class="company_name">CloudInc</a>
-            <span class="location">Seattle, WA</span>
-            <span class="posted">Today</span>
-        </article>
+        <script type="application/ld+json">
+        {"@type": "ItemList", "itemListElement": [
+            {"@type": "ListItem", "position": "1", "name": "DevOps Engineer",
+             "url": "https://www.ziprecruiter.com/c/CloudInc/Job/DevOps-Engineer/-in-Seattle,WA?jid=abc123"}
+        ]}
+        </script>
+        <div class="job_result_two_pane_v2">
+            <article>
+                <h2>DevOps Engineer</h2>
+                <a data-testid="job-card-company">CloudInc</a>
+                <a data-testid="job-card-location">Seattle, WA</a>
+            </article>
+        </div>
         """
         source = ZipRecruiterSource(max_pages=1)
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.text = html
+        mock_driver = MagicMock()
+        mock_driver.page_source = html
 
         with patch(
-            "negotium.sources.search_engines.ziprecruiter.requests.get",
-            return_value=mock_resp,
+            "negotium.sources.search_engines.ziprecruiter.make_driver",
+            return_value=mock_driver,
         ):
             jobs = source.fetch_jobs()
 
         assert len(jobs) == 1
         assert jobs[0].title == "DevOps Engineer"
         assert jobs[0].company == "CloudInc"
+        assert jobs[0].location == "Seattle, WA"
+        assert "ziprecruiter.com" in jobs[0].link
+        mock_driver.quit.assert_called_once()
 
 
 # ─── Glassdoor ───────────────────────────────────────────────────────────────
@@ -455,19 +463,19 @@ class TestHandshakeSource:
         </div>
         """
         source = HandshakeSource(max_pages=1)
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.text = html
+        mock_driver = MagicMock()
+        mock_driver.page_source = html
 
         with patch(
-            "negotium.sources.search_engines.handshake.requests.get",
-            return_value=mock_resp,
+            "negotium.sources.search_engines.handshake.make_driver",
+            return_value=mock_driver,
         ):
             jobs = source.fetch_jobs()
 
         assert len(jobs) == 1
         assert jobs[0].title == "Junior Developer"
         assert "handshake.com" in jobs[0].link
+        mock_driver.quit.assert_called_once()
 
 
 # ─── Dice ────────────────────────────────────────────────────────────────────
@@ -533,13 +541,12 @@ class TestDiceSource:
         </dhi-search-card>
         """
         source = DiceSource(max_pages=1)
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.text = html
+        mock_driver = MagicMock()
+        mock_driver.page_source = html
 
         with patch(
-            "negotium.sources.search_engines.dice.requests.get",
-            return_value=mock_resp,
+            "negotium.sources.search_engines.dice.make_driver",
+            return_value=mock_driver,
         ):
             jobs = source.fetch_jobs()
 
@@ -547,6 +554,7 @@ class TestDiceSource:
         assert jobs[0].title == "Python Developer"
         assert jobs[0].company == "TechCorp"
         assert "dice.com" in jobs[0].link
+        mock_driver.quit.assert_called_once()
 
 
 # ─── FlexJobs ────────────────────────────────────────────────────────────────
@@ -611,16 +619,16 @@ class TestFlexJobsSource:
         </div>
         """
         source = FlexJobsSource(max_pages=1)
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.text = html
+        mock_driver = MagicMock()
+        mock_driver.page_source = html
 
         with patch(
-            "negotium.sources.search_engines.flexjobs.requests.get",
-            return_value=mock_resp,
+            "negotium.sources.search_engines.flexjobs.make_driver",
+            return_value=mock_driver,
         ):
             jobs = source.fetch_jobs()
 
         assert len(jobs) == 1
         assert jobs[0].title == "Remote Software Engineer"
         assert "flexjobs.com" in jobs[0].link
+        mock_driver.quit.assert_called_once()

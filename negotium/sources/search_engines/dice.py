@@ -1,16 +1,20 @@
-"""Dice job search engine source."""
+"""Dice job search engine source (Selenium-based)."""
 
 from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from urllib.parse import quote
 
-import requests
 from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 from negotium.config import ExperienceLevel, PostedWithin, SearchConfig
 from negotium.models.job import Job
 from negotium.sources.base import JobSearchEngine
+from negotium.sources.driver import make_driver
 
 
 BASE_URL = "https://www.dice.com/jobs"
@@ -93,25 +97,34 @@ class DiceSource(JobSearchEngine):
         if self.search.remote_only:
             params["filters.isRemote"] = "true"
 
-        qs = "&".join(f"{k}={requests.utils.quote(str(v))}" for k, v in params.items())
+        qs = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
         return f"{BASE_URL}?{qs}"
 
     def fetch_jobs(self) -> list[Job]:
-        """Fetch job listings from Dice."""
+        """Fetch job listings from Dice using a headless browser."""
         jobs: list[Job] = []
 
         for page_num in range(1, self.max_pages + 1):
             url = self._build_url(page=page_num)
+            page_html: str | None = None
+            driver = make_driver()
             try:
-                resp = requests.get(url, headers=self.headers, timeout=15)
-                if resp.status_code != 200:
-                    print(f"  [!] HTTP {resp.status_code} — {url}")
-                    break
-            except requests.RequestException as exc:
-                print(f"  [!] Request failed: {exc}")
-                break
+                driver.get(url)
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "dhi-search-card, div[class*=card]")
+                    )
+                )
+                page_html = driver.page_source
+            except Exception as exc:
+                print(f"  [!] Page load failed — {url}\n      {exc}")
+            finally:
+                driver.quit()
 
-            soup = BeautifulSoup(resp.text, "html.parser")
+            if page_html is None:
+                continue
+
+            soup = BeautifulSoup(page_html, "html.parser")
 
             # Dice uses custom web components / shadow DOM; fall back to
             # common selectors for server-rendered content

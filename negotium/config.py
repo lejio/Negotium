@@ -116,6 +116,22 @@ class LLMConfig:
     min_score_to_notify: int = 0  # only notify for jobs scoring >= this
 
 
+# ─── Firecrawl Config ────────────────────────────────────────────────────────
+
+
+@dataclass
+class FirecrawlConfig:
+    """Settings for the self-hosted Firecrawl scraping API.
+
+    When ``enabled`` is *True*, sources that support Firecrawl will
+    fetch pages through the Firecrawl API (Playwright-based rendering)
+    instead of launching a local Selenium / Chrome process.
+    """
+
+    enabled: bool = False
+    api_url: str = "http://localhost:3002"
+
+
 # ─── App Config ──────────────────────────────────────────────────────────────
 
 
@@ -126,3 +142,4 @@ class AppConfig:
     check_interval_minutes: int = 15
     discord: DiscordConfig = field(default_factory=DiscordConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
+    firecrawl: FirecrawlConfig = field(default_factory=FirecrawlConfig)

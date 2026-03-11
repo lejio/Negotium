@@ -7,6 +7,7 @@ from negotium.config import (
     AppConfig,
     DiscordConfig,
     ExperienceLevel,
+    FirecrawlConfig,
     LLMConfig,
     PostedWithin,
 )
@@ -113,8 +114,23 @@ class TestAppConfig:
         assert cfg.check_interval_minutes == 15
         assert isinstance(cfg.discord, DiscordConfig)
         assert isinstance(cfg.llm, LLMConfig)
+        assert isinstance(cfg.firecrawl, FirecrawlConfig)
 
     def test_custom(self, app_config):
         assert app_config.check_interval_minutes == 10
         assert app_config.discord.username == "Test Bot"
         assert app_config.llm.enabled is True
+
+
+class TestFirecrawlConfig:
+    """Test Firecrawl configuration defaults."""
+
+    def test_defaults(self):
+        cfg = FirecrawlConfig()
+        assert cfg.enabled is False
+        assert cfg.api_url == "http://localhost:3002"
+
+    def test_custom(self):
+        cfg = FirecrawlConfig(enabled=True, api_url="http://my-server:4000")
+        assert cfg.enabled is True
+        assert cfg.api_url == "http://my-server:4000"

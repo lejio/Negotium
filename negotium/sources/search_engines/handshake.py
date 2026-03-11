@@ -1,16 +1,29 @@
-"""Handshake job search engine source."""
+"""Handshake job search engine source (Selenium-based).
+
+.. note::
+
+    Handshake has removed public job browsing — the ``/explore/jobs``
+    page now returns a 404.  Browsing jobs requires a student login.
+    This source will detect the missing page and return an empty list
+    with a log message.  It is kept as a stub so the bot still starts
+    cleanly if Handshake is configured.
+"""
 
 from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from urllib.parse import quote
 
-import requests
 from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 from negotium.config import ExperienceLevel, PostedWithin, SearchConfig
 from negotium.models.job import Job
 from negotium.sources.base import JobSearchEngine
+from negotium.sources.driver import make_driver
 
 
 BASE_URL = "https://joinhandshake.com/explore/jobs"
@@ -91,25 +104,51 @@ class HandshakeSource(JobSearchEngine):
         if self.search.remote_only:
             params["remote"] = "true"
 
-        qs = "&".join(f"{k}={requests.utils.quote(str(v))}" for k, v in params.items())
+        qs = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
         return f"{BASE_URL}?{qs}"
 
     def fetch_jobs(self) -> list[Job]:
-        """Fetch job listings from Handshake."""
+        """Fetch job listings from Handshake using a headless browser.
+
+        Returns an empty list if Handshake's public job page is unavailable.
+        """
         jobs: list[Job] = []
 
         for page_num in range(1, self.max_pages + 1):
             url = self._build_url(page=page_num)
+            page_html: str | None = None
+            driver = make_driver()
             try:
-                resp = requests.get(url, headers=self.headers, timeout=15)
-                if resp.status_code != 200:
-                    print(f"  [!] HTTP {resp.status_code} — {url}")
-                    break
-            except requests.RequestException as exc:
-                print(f"  [!] Request failed: {exc}")
-                break
+                driver.get(url)
 
-            soup = BeautifulSoup(resp.text, "html.parser")
+                # Detect 404 / login-wall — Handshake removed public browsing
+                time.sleep(3)
+                page_text = driver.page_source.lower()
+                if (
+                    "right place" in page_text
+                    or "page not found" in page_text
+                ):
+                    print(
+                        "  [!] Handshake public job page is no longer available "
+                        "(requires student login).  Skipping."
+                    )
+                    return jobs
+
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "div[data-hook='job-card'], a[class*='job-card'], div[class*='JobCard']")
+                    )
+                )
+                page_html = driver.page_source
+            except Exception as exc:
+                print(f"  [!] Page load failed — {url}\n      {exc}")
+            finally:
+                driver.quit()
+
+            if page_html is None:
+                continue
+
+            soup = BeautifulSoup(page_html, "html.parser")
 
             cards = soup.find_all("div", attrs={"data-hook": "job-card"})
             if not cards:

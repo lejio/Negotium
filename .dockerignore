@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+*.md
+tests/
+.pytest_cache/
+.coverage
+data/
+seen_jobs.json
+.env

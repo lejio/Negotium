@@ -18,12 +18,12 @@ from negotium.config import (
     AppConfig,
     DiscordConfig,
     ExperienceLevel,
+    FirecrawlConfig,
     LLMConfig,
     PostedWithin,
     SearchConfig,
 )
 from negotium.discord_notifier import send_discord_notification
-from negotium.notification import notify
 from negotium.persistence import load_seen_jobs, save_seen_jobs
 from negotium.ranker import rank_jobs
 from negotium.sources.base import JobSource
@@ -31,9 +31,10 @@ from negotium.sources.search_engines.linkedin import LinkedInSource
 from negotium.sources.search_engines.indeed import IndeedSource
 from negotium.sources.search_engines.ziprecruiter import ZipRecruiterSource
 from negotium.sources.search_engines.glassdoor import GlassdoorSource
-from negotium.sources.search_engines.handshake import HandshakeSource
-from negotium.sources.search_engines.dice import DiceSource
-from negotium.sources.search_engines.flexjobs import FlexJobsSource
+# from negotium.sources.search_engines.handshake import HandshakeSource
+# from negotium.sources.search_engines.dice import DiceSource
+# from negotium.sources.search_engines.flexjobs import FlexJobsSource
+from negotium.visitors.firecrawl import FirecrawlVisitor
 from negotium.visitors.scraping import ScrapingVisitor
 
 # ─── Configuration ───────────────────────────────────────────────────────────
@@ -44,6 +45,14 @@ CONFIG = AppConfig(
     discord=DiscordConfig(
         webhook_url="",  # paste your webhook URL here
         username="Negotium Bot",
+    ),
+    # ── Firecrawl (self-hosted scraping API) ──────────────────────────
+    # When enabled, Selenium-based sources use Firecrawl's Playwright
+    # renderer instead of a local Chrome process.  Start with:
+    #   cd firecrawl && sudo docker compose up -d
+    firecrawl=FirecrawlConfig(
+        enabled=True,
+        api_url="http://localhost:3002",
     ),
     # ── LLM job ranking (set enabled=True to activate) ────────────────
     # Provider options:
@@ -95,27 +104,27 @@ SOURCES: list[JobSource] = [
             location="New York, NY",
         ),
     ),
-    HandshakeSource(
-        search=SearchConfig(
-            keywords="software engineer",
-            experience_levels=[ExperienceLevel.ENTRY_LEVEL],
-            location="New York, NY",
-        ),
-    ),
-    DiceSource(
-        search=SearchConfig(
-            keywords="software engineer",
-            experience_levels=[ExperienceLevel.ENTRY_LEVEL],
-            location="New York, NY",
-        ),
-    ),
-    FlexJobsSource(
-        search=SearchConfig(
-            keywords="software engineer",
-            experience_levels=[ExperienceLevel.ENTRY_LEVEL],
-            remote_only=True,
-        ),
-    ),
+    # HandshakeSource(
+    #     search=SearchConfig(
+    #         keywords="software engineer",
+    #         experience_levels=[ExperienceLevel.ENTRY_LEVEL],
+    #         location="New York, NY",
+    #     ),
+    # ),
+    # DiceSource(
+    #     search=SearchConfig(
+    #         keywords="software engineer",
+    #         experience_levels=[ExperienceLevel.ENTRY_LEVEL],
+    #         location="New York, NY",
+    #     ),
+    # ),
+    # FlexJobsSource(
+    #     search=SearchConfig(
+    #         keywords="software engineer",
+    #         experience_levels=[ExperienceLevel.ENTRY_LEVEL],
+    #         remote_only=True,
+    #     ),
+    # ),
 ]
 
 
@@ -124,7 +133,10 @@ SOURCES: list[JobSource] = [
 
 def check_for_new_jobs() -> None:
     """Run one check cycle: visit every source, diff, rank, notify, persist."""
-    visitor = ScrapingVisitor()
+    if CONFIG.firecrawl.enabled:
+        visitor = FirecrawlVisitor(api_url=CONFIG.firecrawl.api_url)
+    else:
+        visitor = ScrapingVisitor()
     seen = load_seen_jobs()
     new_total = 0
 
@@ -164,14 +176,6 @@ def check_for_new_jobs() -> None:
             print(f"         Posted: {j.posted}")
             seen.add(j.job_id)
 
-        # ── macOS notification ────────────────────────────────────────
-        titles = ", ".join(j.title for j in new_jobs[:3])
-        extra = f" (+{len(new_jobs) - 3} more)" if len(new_jobs) > 3 else ""
-        notify(
-            f"🔔 {len(new_jobs)} New Job(s) — {source.name}",
-            f"{titles}{extra}",
-        )
-
         # ── Discord notification (only if configured) ─────────────────
         send_discord_notification(CONFIG.discord, source.name, new_jobs)
 
@@ -192,6 +196,7 @@ def main() -> None:
     print(f" Checking every {CONFIG.check_interval_minutes} minutes")
     print(f" Sources: {[s.name for s in SOURCES]}")
     print(f" Discord: {'✅ enabled' if CONFIG.discord.webhook_url else '❌ disabled'}")
+    print(f" Firecrawl: {'✅ enabled (' + CONFIG.firecrawl.api_url + ')' if CONFIG.firecrawl.enabled else '❌ disabled (using Selenium)'}")
     print(f" LLM Ranking: {'✅ enabled' if CONFIG.llm.enabled else '❌ disabled'}")
     print("=" * 60)
 

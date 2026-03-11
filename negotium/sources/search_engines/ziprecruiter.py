@@ -1,16 +1,21 @@
-"""ZipRecruiter job search engine source."""
+"""ZipRecruiter job search engine source (Selenium-based)."""
 
 from __future__ import annotations
 
+import json
 import time
 from dataclasses import dataclass, field
+from urllib.parse import quote
 
-import requests
 from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 from negotium.config import PostedWithin, SearchConfig
 from negotium.models.job import Job
 from negotium.sources.base import JobSearchEngine
+from negotium.sources.driver import make_driver
 
 
 BASE_URL = "https://www.ziprecruiter.com/jobs-search"
@@ -72,85 +77,100 @@ class ZipRecruiterSource(JobSearchEngine):
         if self.search.remote_only:
             params["refine_by_location_type"] = "only_remote"
 
-        qs = "&".join(f"{k}={requests.utils.quote(str(v))}" for k, v in params.items())
+        qs = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
         return f"{BASE_URL}?{qs}"
 
+    # ── Firecrawl-compatible interface ────────────────────────────────
+
+    def build_page_urls(self) -> list[str]:
+        """Return URLs for every page to scrape."""
+        return [self._build_url(page=p) for p in range(1, self.max_pages + 1)]
+
+    def parse_page(self, html: str) -> list[Job]:
+        """Parse a single ZipRecruiter results page into :class:`Job` objects."""
+        jobs: list[Job] = []
+        soup = BeautifulSoup(html, "html.parser")
+
+        # ── Extract job URLs from JSON-LD structured data ─────────
+        jsonld_urls: list[str] = []
+        for script in soup.find_all("script", type="application/ld+json"):
+            try:
+                data = json.loads(script.string or "")
+                if isinstance(data, dict) and data.get("@type") == "ItemList":
+                    for item in data.get("itemListElement", []):
+                        jsonld_urls.append(item.get("url", ""))
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        # ── Parse HTML cards ──────────────────────────────────────
+        cards = soup.find_all("div", class_="job_result_two_pane_v2")
+
+        for i, card in enumerate(cards):
+            article = card.find("article")
+            if not article:
+                continue
+
+            h2 = article.find("h2")
+            title = h2.get_text(strip=True) if h2 else "N/A"
+
+            link = jsonld_urls[i] if i < len(jsonld_urls) else ""
+
+            company_tag = article.find(
+                "a", attrs={"data-testid": "job-card-company"}
+            )
+            company = company_tag.get_text(strip=True) if company_tag else "N/A"
+
+            loc_tag = article.find(
+                "a", attrs={"data-testid": "job-card-location"}
+            )
+            location = loc_tag.get_text(strip=True) if loc_tag else "N/A"
+
+            posted = "N/A"
+
+            if link:
+                jobs.append(
+                    Job(
+                        title=title,
+                        company=company,
+                        location=location,
+                        link=link,
+                        posted=posted,
+                        source=self.name,
+                    )
+                )
+
+        return jobs
+
+    # ── Selenium-based fetch (used by ScrapingVisitor) ────────────
+
     def fetch_jobs(self) -> list[Job]:
-        """Fetch job listings from ZipRecruiter."""
+        """Fetch job listings from ZipRecruiter using a headless browser."""
         jobs: list[Job] = []
 
-        for page_num in range(1, self.max_pages + 1):
-            url = self._build_url(page=page_num)
+        for url in self.build_page_urls():
+            page_html: str | None = None
+            driver = make_driver()
             try:
-                resp = requests.get(url, headers=self.headers, timeout=15)
-                if resp.status_code != 200:
-                    print(f"  [!] HTTP {resp.status_code} — {url}")
-                    break
-            except requests.RequestException as exc:
-                print(f"  [!] Request failed: {exc}")
-                break
-
-            soup = BeautifulSoup(resp.text, "html.parser")
-
-            # ZipRecruiter wraps listings in article tags or job-card divs
-            cards = soup.find_all("article", class_="job_result")
-            if not cards:
-                cards = soup.find_all("div", class_="job_content")
-            if not cards:
-                # Try the newer card layout
-                cards = soup.find_all("article", attrs={"data-testid": "job-card"})
-
-            if not cards:
-                break
-
-            for card in cards:
-                # --- title & link ---
-                title_tag = (
-                    card.find("h2", class_="job_title")
-                    or card.find("a", class_="job_link")
-                    or card.find("h2")
-                )
-                title = title_tag.get_text(strip=True) if title_tag else "N/A"
-
-                link_tag = card.find("a", href=True)
-                href = link_tag["href"] if link_tag else ""
-                if href and not href.startswith("http"):
-                    href = f"https://www.ziprecruiter.com{href}"
-                link = href.split("?")[0] if href else ""
-
-                # --- company ---
-                company_tag = (
-                    card.find("a", class_="company_name")
-                    or card.find("p", class_="company_name")
-                    or card.find("span", class_="company_name")
-                )
-                company = company_tag.get_text(strip=True) if company_tag else "N/A"
-
-                # --- location ---
-                loc_tag = card.find("span", class_="location") or card.find(
-                    "p", class_="location"
-                )
-                location = loc_tag.get_text(strip=True) if loc_tag else "N/A"
-
-                # --- date ---
-                date_tag = (
-                    card.find("span", class_="posted")
-                    or card.find("p", class_="posted")
-                    or card.find("time")
-                )
-                posted = date_tag.get_text(strip=True) if date_tag else "N/A"
-
-                if link:
-                    jobs.append(
-                        Job(
-                            title=title,
-                            company=company,
-                            location=location,
-                            link=link,
-                            posted=posted,
-                            source=self.name,
-                        )
+                driver.get(url)
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "div.job_result_two_pane_v2")
                     )
+                )
+                page_html = driver.page_source
+            except Exception as exc:
+                print(f"  [!] Page load failed — {url}\n      {exc}")
+            finally:
+                driver.quit()
+
+            if page_html is None:
+                continue
+
+            page_jobs = self.parse_page(page_html)
+            jobs.extend(page_jobs)
+
+            if not page_jobs:
+                break
 
             time.sleep(2)  # rate-limit
 

@@ -1,4 +1,4 @@
-"""Tests for negotium.notification and negotium.discord_notifier."""
+"""Tests for negotium.discord_notifier."""
 
 from __future__ import annotations
 
@@ -8,41 +8,6 @@ from unittest.mock import MagicMock, patch
 from negotium.config import DiscordConfig
 from negotium.discord_notifier import EMBED_COLOR, send_discord_notification
 from negotium.models.job import Job
-from negotium.notification import notify
-
-
-# ─── macOS notification ──────────────────────────────────────────────────────
-
-
-class TestNotify:
-    """Test macOS osascript notifications."""
-
-    @patch("negotium.notification.subprocess.run")
-    def test_calls_osascript(self, mock_run):
-        notify("Test Title", "Test Message")
-        mock_run.assert_called_once()
-        cmd = mock_run.call_args[0][0]
-        assert cmd[0] == "osascript"
-        assert cmd[1] == "-e"
-
-    @patch("negotium.notification.subprocess.run")
-    def test_escapes_quotes_in_title(self, mock_run):
-        notify('Title with "quotes"', "msg")
-        script = mock_run.call_args[0][0][2]
-        assert '\\"' in script
-        assert 'Title with \\"quotes\\"' in script
-
-    @patch("negotium.notification.subprocess.run")
-    def test_escapes_quotes_in_message(self, mock_run):
-        notify("t", 'Say "hello"')
-        script = mock_run.call_args[0][0][2]
-        assert 'Say \\"hello\\"' in script
-
-    @patch("negotium.notification.subprocess.run")
-    def test_includes_sound(self, mock_run):
-        notify("t", "m")
-        script = mock_run.call_args[0][0][2]
-        assert 'sound name "Glass"' in script
 
 
 # ─── Discord notifications ──────────────────────────────────────────────────
